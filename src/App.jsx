@@ -1,58 +1,124 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProvider } from './context/AuthContext';
-import Login from './pages/Login';
-import Chat from './pages/Chat';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { AuthProvider, signOut } from "./context/AuthContext";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Chat from "./pages/Chat";
+import "./App.css";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [theme, setTheme] = useState('light');
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState("light");
+  const [isSignupMode, setIsSignupMode] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
-    const savedLoginState = localStorage.getItem('chatapp_logged_in');
-    if (savedLoginState) {
-      setIsLoggedIn(true);
-    }
+    const auth = getAuth();
+
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+
+      // Save login state to localStorage
+      if (user) {
+        localStorage.setItem("chatapp_logged_in", "true");
+      } else {
+        localStorage.removeItem("chatapp_logged_in");
+      }
+    });
 
     // Load saved theme
-    const savedTheme = localStorage.getItem('chatapp_theme');
-    if (savedTheme === 'dark') {
-      setTheme('dark');
-      document.body.setAttribute('data-theme', 'dark');
+    const savedTheme = localStorage.getItem("chatapp_theme");
+    if (savedTheme === "dark") {
+      setTheme("dark");
+      document.body.setAttribute("data-theme", "dark");
     }
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    localStorage.setItem('chatapp_logged_in', 'true');
+  const handleLogin = (firebaseUser) => {
+    setUser(firebaseUser);
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    localStorage.removeItem('chatapp_logged_in');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // The onAuthStateChanged listener will handle updating the state
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
+    const newTheme = theme === "light" ? "dark" : "light";
     setTheme(newTheme);
-    
-    if (newTheme === 'dark') {
-      document.body.setAttribute('data-theme', 'dark');
+
+    if (newTheme === "dark") {
+      document.body.setAttribute("data-theme", "dark");
     } else {
-      document.body.removeAttribute('data-theme');
+      document.body.removeAttribute("data-theme");
     }
-    
-    localStorage.setItem('chatapp_theme', newTheme);
+
+    localStorage.setItem("chatapp_theme", newTheme);
   };
 
-  return (
-    <AuthProvider value={{ isLoggedIn, theme, toggleTheme, handleLogin, handleLogout }}>
+  const switchToSignup = () => {
+    setIsSignupMode(true);
+  };
+
+  const switchToLogin = () => {
+    setIsSignupMode(false);
+  };
+
+  // Show loading screen while checking auth state
+  if (loading) {
+    return (
       <div className="App">
-        {isLoggedIn ? (
-          <Chat onLogout={handleLogout} theme={theme} onToggleTheme={toggleTheme} />
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+          }}
+        >
+          <i
+            className="fas fa-spinner fa-spin"
+            style={{ fontSize: "2rem" }}
+          ></i>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <AuthProvider
+      value={{
+        user,
+        isLoggedIn: !!user,
+        theme,
+        toggleTheme,
+        handleLogin,
+        handleLogout,
+        switchToSignup,
+        switchToLogin,
+        isSignupMode,
+      }}
+    >
+      <div className="App">
+        {user ? (
+          <Chat
+            onLogout={handleLogout}
+            theme={theme}
+            onToggleTheme={toggleTheme}
+          />
+        ) : isSignupMode ? (
+          <Signup />
         ) : (
-          <Login onLogin={handleLogin} />
+          <Login />
         )}
       </div>
     </AuthProvider>

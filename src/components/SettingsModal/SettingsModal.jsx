@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
-import styles from './SettingsModal.module.css';
+import React, { useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import styles from "./SettingsModal.module.css";
 
-const SettingsModal = ({ theme, onToggleTheme, onClose, onLogout }) => {
+const SettingsModal = ({ onClose }) => {
+  const { theme, toggleTheme, handleLogout, user } = useAuth();
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (e.target.classList.contains(styles.modalOverlay)) {
@@ -10,35 +13,40 @@ const SettingsModal = ({ theme, onToggleTheme, onClose, onLogout }) => {
     };
 
     const handleEscKey = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    document.addEventListener('keydown', handleEscKey);
+    document.addEventListener("click", handleClickOutside);
+    document.addEventListener("keydown", handleEscKey);
 
     return () => {
-      document.removeEventListener('click', handleClickOutside);
-      document.removeEventListener('keydown', handleEscKey);
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("keydown", handleEscKey);
     };
   }, [onClose]);
 
   const handleThemeToggle = () => {
-    onToggleTheme();
-    showToast('Theme', theme === 'light' ? 'Switched to dark mode' : 'Switched to light mode', 'success');
+    toggleTheme();
+    showToast(
+      "Theme",
+      theme === "light" ? "Switched to dark mode" : "Switched to light mode",
+      "success"
+    );
   };
 
-  const handleLogout = () => {
-    onLogout();
-    showToast('Success', 'Logged out successfully!', 'success');
+  const handleLogoutClick = () => {
+    handleLogout();
+    showToast("Success", "Logged out successfully!", "success");
   };
 
-  const showToast = (title, message, type = 'success') => {
-    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
-    const toast = document.createElement('div');
+  const showToast = (title, message, type = "success") => {
+    const toastContainer =
+      document.querySelector(".toast-container") || createToastContainer();
+    const toast = document.createElement("div");
     toast.className = `toast ${type}`;
-    
+
     toast.innerHTML = `
       <div class="toast-icon">
         <i class="fas fa-check"></i>
@@ -48,11 +56,11 @@ const SettingsModal = ({ theme, onToggleTheme, onClose, onLogout }) => {
         <div class="toast-message">${message}</div>
       </div>
     `;
-    
+
     toastContainer.appendChild(toast);
-    
+
     setTimeout(() => {
-      toast.style.animation = 'toastSlide 0.3s ease reverse';
+      toast.style.animation = "toastSlide 0.3s ease reverse";
       setTimeout(() => {
         if (toast.parentNode) {
           toast.parentNode.removeChild(toast);
@@ -62,8 +70,8 @@ const SettingsModal = ({ theme, onToggleTheme, onClose, onLogout }) => {
   };
 
   const createToastContainer = () => {
-    const container = document.createElement('div');
-    container.className = 'toast-container';
+    const container = document.createElement("div");
+    container.className = "toast-container";
     document.body.appendChild(container);
     return container;
   };
@@ -77,28 +85,33 @@ const SettingsModal = ({ theme, onToggleTheme, onClose, onLogout }) => {
             <i className="fas fa-times"></i>
           </button>
         </div>
-        
+
         <div className={styles.settingsSection}>
           <h3>Appearance</h3>
           <div className={styles.settingItem}>
             <div className={styles.settingInfo}>
               <h4>Dark Mode</h4>
-              <div className={styles.settingDescription}>Switch between light and dark themes</div>
+              <div className={styles.settingDescription}>
+                Switch between light and dark themes
+              </div>
             </div>
-            <div 
-              className={`${styles.toggleSwitch} ${theme === 'dark' ? styles.active : ''}`}
+            <div
+              className={`${styles.toggleSwitch} ${
+                theme === "dark" ? styles.active : ""
+              }`}
               onClick={handleThemeToggle}
-            >
-            </div>
+            ></div>
           </div>
         </div>
-        
+
         <div className={styles.settingsSection}>
           <h3>Account</h3>
           <div className={styles.settingItem}>
             <div className={styles.settingInfo}>
               <h4>Profile</h4>
-              <div className={styles.settingDescription}>john.doe@example.com</div>
+              <div className={styles.settingDescription}>
+                {user?.email || "No email"}
+              </div>
             </div>
           </div>
           <div className={styles.settingItem}>
@@ -108,9 +121,12 @@ const SettingsModal = ({ theme, onToggleTheme, onClose, onLogout }) => {
             </div>
           </div>
         </div>
-        
+
         <div className={styles.settingsSection}>
-          <button className={`btn btn-primary ${styles.logoutBtn}`} onClick={handleLogout}>
+          <button
+            className={`btn btn-primary ${styles.logoutBtn}`}
+            onClick={handleLogoutClick}
+          >
             <i className="fas fa-sign-out-alt"></i>
             Logout
           </button>
