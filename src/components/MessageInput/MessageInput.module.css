@@ -1,0 +1,65 @@
+.messageInputContainer {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-white);
+}
+
+.messageInputWrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: var(--bg-light);
+  border-radius: 24px;
+  padding: 8px;
+}
+
+.messageInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 16px;
+  font-size: 15px;
+  resize: none;
+  max-height: 120px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.messageInput:focus {
+  outline: none;
+}
+
+.inputActions {
+  display: flex;
+  gap: 4px;
+}
+
+.sendBtn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: linear-gradient(var(--secondary-color), var(--primary-color));
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.sendBtn:hover {
+  background: linear-gradient(
+    135deg,
+    var(--secondary-color),
+    var(--primary-color)
+  );
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: var(--shadow-lg);
+}
+
+.sendBtn:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
