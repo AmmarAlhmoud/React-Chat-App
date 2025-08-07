@@ -10,6 +10,7 @@ const Sidebar = ({
   currentChat,
   onChatSelect,
   onSettingsOpen,
+  onAddContactOpen,
   isOpen,
   onClose,
 }) => {
@@ -103,6 +104,11 @@ const Sidebar = ({
         currentChat={currentChat}
         onChatSelect={onChatSelect}
       />
+      <div className={`${styles.sidebarActions} ${styles.bottomActions}`}>
+        <button className="icon-btn" onClick={onAddContactOpen}>
+          <i className="fas fa-plus"></i>
+        </button>
+      </div>
     </div>
   );
 };

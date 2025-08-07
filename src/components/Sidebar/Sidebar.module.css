@@ -1,4 +1,5 @@
 .sidebar {
+  position: relative;
   width: 320px;
   display: flex;
   flex-direction: column;
@@ -56,6 +57,27 @@
 .sidebarActions {
   display: flex;
   gap: 8px;
+}
+
+.bottomActions {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 2rem;
+  height: 2rem;
+  z-index: 10;
+}
+
+.bottomActions > button {
+  height: 100%;
+  width: 100%;
+  font-size: 1.1rem;
+  background: var(--bg-light);
+  color: var(--text-primary);
+}
+
+.bottomActions > button:hover {
+  background: var(--text-muted);
 }
 
 .searchBar {

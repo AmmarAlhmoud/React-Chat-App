@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { AuthProvider, signOut } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
+import { signOut } from "./firebase/auth";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Chat from "./pages/Chat";

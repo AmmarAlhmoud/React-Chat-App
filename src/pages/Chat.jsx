@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import Sidebar from "../components/Sidebar/Sidebar";
 import ChatWindow from "../components/ChatWindow/ChatWindow";
 import SettingsModal from "../components/SettingsModal/SettingsModal";
+import ContactsModal from "../components/ContactsModal/ContactsModal";
 import styles from "./Chat.module.css";
 
 const Chat = ({ onLogout, theme, onToggleTheme }) => {
   const [currentChat, setCurrentChat] = useState("Sarah Wilson");
   const [showSettings, setShowSettings] = useState(false);
+  const [showAddContact, setshowAddContact] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const chats = [
@@ -64,6 +66,12 @@ const Chat = ({ onLogout, theme, onToggleTheme }) => {
   const handleSettingsClose = () => {
     setShowSettings(false);
   };
+  const handleAddContactsOpen = () => {
+    setshowAddContact(true);
+  };
+  const handleAddContactClose = () => {
+    setshowAddContact(false);
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -76,6 +84,7 @@ const Chat = ({ onLogout, theme, onToggleTheme }) => {
         currentChat={currentChat}
         onChatSelect={handleChatSelect}
         onSettingsOpen={handleSettingsOpen}
+        onAddContactOpen={handleAddContactsOpen}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -83,6 +92,7 @@ const Chat = ({ onLogout, theme, onToggleTheme }) => {
       <ChatWindow currentChat={currentChat} onToggleSidebar={toggleSidebar} />
 
       {showSettings && <SettingsModal onClose={handleSettingsClose} />}
+      {showAddContact && <ContactsModal onClose={handleAddContactClose} />}     
     </div>
   );
 };
