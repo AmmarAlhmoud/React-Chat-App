@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { signInWithEmail, signInWithGoogle } from "../firebase/auth";
 import { useAuth } from "../context/AuthContext";
+import showToast from "../utils/toast";
 import styles from "./Login.module.css";
 
 const Login = () => {
@@ -69,44 +70,6 @@ const Login = () => {
     }
   };
 
-  const showToast = (title, message, type = "success") => {
-    const toastContainer =
-      document.querySelector(".toast-container") || createToastContainer();
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-
-    const icon =
-      type === "success" ? "fas fa-check" : "fas fa-exclamation-triangle";
-
-    toast.innerHTML = `
-      <div class="toast-icon">
-        <i class="${icon}"></i>
-      </div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-    `;
-
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.animation = "toastSlide 0.3s ease reverse";
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 300);
-    }, 3000);
-  };
-
-  const createToastContainer = () => {
-    const container = document.createElement("div");
-    container.className = "toast-container";
-    document.body.appendChild(container);
-    return container;
-  };
-
   return (
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
@@ -115,13 +78,6 @@ const Login = () => {
         </div>
         <h1 className={styles.loginTitle}>Welcome to ChatApp</h1>
         <p className={styles.loginSubtitle}>Connect with your team instantly</p>
-
-        {error && (
-          <div className={styles.errorMessage}>
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>

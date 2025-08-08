@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { signUpWithEmail, signInWithGoogle } from "../firebase/auth";
 import { useAuth } from "../context/AuthContext";
-import { getAuth } from "firebase/auth";
 import { ref, set } from "firebase/database";
 import { database } from "../firebase/config";
+import showToast from "../utils/toast";
 import styles from "./Signup.module.css";
 
 const Signup = () => {
-  const { handleLogin, switchToLogin } = useAuth();
+  const { auth, handleLogin, switchToLogin } = useAuth();
 
   // Separate loading states for signup and Google signup
   const [signupLoading, setSignupLoading] = useState(false);
@@ -20,18 +20,6 @@ const Signup = () => {
     confirmPassword: "",
   });
   const [error, setError] = useState("");
-
-  // Debug auth state changes
-  useEffect(() => {
-    const auth = getAuth();
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log("Auth state changed - displayName:", user.displayName);
-      }
-    });
-
-    return unsubscribe;
-  }, []);
 
   const handleInputChange = (e) => {
     setFormData({
@@ -150,27 +138,59 @@ const Signup = () => {
 
     try {
       const result = await signInWithGoogle();
-      if (
-        result.user &&
-        !result.user.displayName &&
-        result.additionalUserInfo?.profile?.name
-      ) {
+
+      if (result.user) {
+        // Get user info from Google profile
+        const googleProfile = result.additionalUserInfo?.profile;
+        const displayName =
+          result.user.displayName || googleProfile?.name || "Google User";
+
+        // Extract first and last name from Google profile or displayName
+        let firstName = googleProfile?.given_name || "";
+        let lastName = googleProfile?.family_name || "";
+
+        // If we don't have separate first/last names, try to split the displayName
+        if (!firstName && !lastName && displayName) {
+          const nameParts = displayName.split(" ");
+          firstName = nameParts[0] || "";
+          lastName = nameParts.slice(1).join(" ") || "";
+        }
+
         try {
-          await result.user.updateProfile({
-            displayName: result.additionalUserInfo.profile.name,
+          // Save user data in Realtime Database under /users/{uid}
+          await set(ref(database, `users/${result.user.uid}`), {
+            uid: result.user.uid,
+            firstName: firstName,
+            lastName: lastName,
+            email: result.user.email,
+            displayName: displayName,
+            createdAt: new Date().toISOString(),
           });
-          await result.user.reload();
-          console.log(
-            "Google user displayName set to:",
-            result.user.displayName
-          );
+
+          // Update displayName in Firebase Auth profile if needed
+          if (!result.user.displayName && googleProfile?.name) {
+            if (typeof result.user.updateProfile === "function") {
+              await result.user.updateProfile({
+                displayName: googleProfile.name,
+              });
+              await result.user.reload();
+            }
+          }
+
+          const updatedUser = auth.currentUser;
+
+          showToast("Success", "Account created with Google!", "success");
+          handleLogin(updatedUser);
         } catch (updateError) {
-          console.error("Error updating Google user profile:", updateError);
+          console.error("Error updating profile or saving user:", updateError);
+          showToast(
+            "Warning",
+            "Account created but profile may not be saved",
+            "warning"
+          );
+          handleLogin(result.user);
         }
       }
-
-      showToast("Success", "Account created with Google!", "success");
-      handleLogin(result.user);
     } catch (error) {
       console.error("Google signup error:", error);
       let errorMessage = "Google signup failed. Please try again.";
@@ -179,11 +199,8 @@ const Signup = () => {
         errorMessage = "Signup cancelled.";
       } else if (error.code === "auth/popup-blocked") {
         errorMessage = "Popup blocked. Please allow popups and try again.";
-      } else if (
-        error.code === "auth/account-exists-with-different-credential"
-      ) {
-        errorMessage =
-          "An account already exists with the same email address but different sign-in credentials.";
+      } else {
+        errorMessage = "An account already exists.";
       }
 
       setError(errorMessage);
@@ -191,56 +208,6 @@ const Signup = () => {
     } finally {
       setGoogleLoading(false);
     }
-  };
-
-  const showToast = (title, message, type = "success") => {
-    const toastContainer =
-      document.querySelector(".toast-container") || createToastContainer();
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
-
-    let icon;
-    switch (type) {
-      case "success":
-        icon = "fas fa-check";
-        break;
-      case "warning":
-        icon = "fas fa-exclamation-triangle";
-        break;
-      case "error":
-        icon = "fas fa-exclamation-circle";
-        break;
-      default:
-        icon = "fas fa-info";
-    }
-
-    toast.innerHTML = `
-      <div class="toast-icon">
-        <i class="${icon}"></i>
-      </div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-    `;
-
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.animation = "toastSlide 0.3s ease reverse";
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 300);
-    }, 3000);
-  };
-
-  const createToastContainer = () => {
-    const container = document.createElement("div");
-    container.className = "toast-container";
-    document.body.appendChild(container);
-    return container;
   };
 
   return (
