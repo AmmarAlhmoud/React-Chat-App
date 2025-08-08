@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { addNewContact } from "../../firebase/contacts";
+import showToast from "../../utils/toast";
 import styles from "./ContactsModal.module.css";
 
 const ContactsModal = ({ onClose }) => {
-  const { theme, toggleTheme, handleLogout, user } = useAuth();
-  const [email, setEmail] = useState("");
+  const { user } = useAuth();
   const [contactName, setContactName] = useState("");
+  const [email, setEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,46 +33,26 @@ const ContactsModal = ({ onClose }) => {
     };
   }, [onClose]);
 
-  const showToast = (title, message, type = "success") => {
-    const toastContainer =
-      document.querySelector(".toast-container") || createToastContainer();
-    const toast = document.createElement("div");
-    toast.className = `toast ${type}`;
 
-    toast.innerHTML = `
-      <div class="toast-icon">
-        <i class="fas fa-check"></i>
-      </div>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-    `;
-
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.animation = "toastSlide 0.3s ease reverse";
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 300);
-    }, 3000);
-  };
-
-  const createToastContainer = () => {
-    const container = document.createElement("div");
-    container.className = "toast-container";
-    document.body.appendChild(container);
-    return container;
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    showToast("Success", "Contact added successfully");
-    onClose();
+    setEmailLoading(true);
+    setError("");
+
+    const result = await addNewContact(user.uid, contactName, email);
+
+    if (result.type === "success") {
+      showToast("Success", result.message, "success");
+      onClose();
+    } else if (result.type === "warning") {
+      setError(result.message);
+      showToast("Warning", result.message, "warning");
+    } else {
+      setError(result.message);
+      showToast("Error", result.message, "error");
+    }
+
+    setEmailLoading(false);
   };
 
   return (

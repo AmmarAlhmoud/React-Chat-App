@@ -51,6 +51,7 @@
   --success-color: #059669;
   --online-color: #10b981;
   --warning-color: #f59e0b;
+  --error-color: #f87171;
 }
 
 body {
@@ -131,6 +132,14 @@ body {
   border-left: 4px solid var(--success-color);
 }
 
+.toast.error {
+  border-left: 4px solid var(--error-color);
+}
+
+.toast.warning {
+  border-left: 4px solid var(--warning-color);
+}
+
 .toast-icon {
   width: 20px;
   height: 20px;
@@ -145,6 +154,15 @@ body {
 .toast.success .toast-icon {
   background: var(--success-color);
 }
+
+.toast.error .toast-icon {
+  background: var(--error-color);
+}
+
+.toast.warning .toast-icon {
+  background: var(--warning-color);
+}
+
 
 .toast-content {
   flex: 1;
