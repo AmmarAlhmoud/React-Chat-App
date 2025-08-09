@@ -15,6 +15,63 @@
   background: var(--bg-light);
 }
 
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.noMessages {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.noChatSelected {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.debugInfo {
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.05);
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.filterButtons {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.filterButtons button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-color);
+  background: var(--background-secondary);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.filterButtons button:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+.debugInfo {
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .chatMain {
     width: 100%;

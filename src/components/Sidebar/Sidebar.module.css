@@ -100,6 +100,49 @@
   border-color: var(--primary-color);
 }
 
+.noContactsMessage {
+  padding: 20px;
+  margin: auto 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+
+.loadingContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.loading {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.emptyStateIcon {
+  font-size: 3rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.noContactsMessage {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.noContactsMessage h3 {
+  margin: 0.5rem 0;
+  font-weight: 500;
+}
+
+.noContactsMessage p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
