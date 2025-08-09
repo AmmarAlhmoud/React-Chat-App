@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { signUpWithEmail, signInWithGoogle } from "../firebase/auth";
 import { useAuth } from "../context/AuthContext";
 import { ref, set } from "firebase/database";
 import { database } from "../firebase/config";
+import { getAuth, updateProfile } from "firebase/auth";
 import showToast from "../utils/toast";
 import styles from "./Signup.module.css";
 
 const Signup = () => {
-  const { auth, handleLogin, switchToLogin } = useAuth();
-
-  // Separate loading states for signup and Google signup
+  const { handleLogin, switchToLogin } = useAuth();
   const [signupLoading, setSignupLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -80,14 +79,16 @@ const Signup = () => {
             createdAt: new Date().toISOString(),
           });
 
-          // Optionally update displayName in Firebase Auth profile
-          if (typeof result.user.updateProfile === "function") {
-            await result.user.updateProfile({ displayName });
-            await result.user.reload();
-          }
-
           const auth = getAuth();
           const updatedUser = auth.currentUser;
+
+          // update displayName in Firebase Auth profile
+          if (result.user) {
+            await updateProfile(updatedUser, {
+              displayName,
+            });
+            await result.user.reload();
+          }
 
           showToast("Success", "Account created successfully!", "success");
           handleLogin(updatedUser);
@@ -220,14 +221,6 @@ const Signup = () => {
         <p className={styles.signupSubtitle}>
           Create your account and start connecting
         </p>
-
-        {error && (
-          <div className={styles.errorMessage}>
-            <i className="fas fa-exclamation-circle"></i>
-            {error}
-          </div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
