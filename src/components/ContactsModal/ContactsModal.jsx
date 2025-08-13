@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../context/AuthContext";
-import { addNewContact } from "../../firebase/contacts";
+import { addNewContact } from "../../firebase/chatService";
 import { generateInitials } from "../../utils/helpers";
 import showToast from "../../utils/toast";
 import styles from "./ContactsModal.module.css";
@@ -108,13 +109,12 @@ const ContactsModal = ({ onClose, onContactAdded }) => {
 
   const handleInputChange = (setter) => (e) => {
     setter(e.target.value);
-    // Clear error when user starts typing
     if (error) {
       setError("");
     }
   };
 
-  return (
+  const modalContent = (
     <div className={styles.modalOverlay}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
@@ -141,6 +141,7 @@ const ContactsModal = ({ onClose, onContactAdded }) => {
               disabled={emailLoading}
               required
               maxLength={50}
+              autoFocus
             />
             {contactName && (
               <div className={styles.avatarPreview}>
@@ -167,6 +168,13 @@ const ContactsModal = ({ onClose, onContactAdded }) => {
               required
             />
           </div>
+
+          {error && (
+            <div className={styles.errorMessage}>
+              <i className="fas fa-exclamation-triangle"></i>
+              {error}
+            </div>
+          )}
 
           <div className={styles.modalActions}>
             <button
@@ -198,6 +206,8 @@ const ContactsModal = ({ onClose, onContactAdded }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.getElementById("modal-root"));
 };
 
 export default ContactsModal;

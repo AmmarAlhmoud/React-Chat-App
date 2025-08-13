@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "../../context/AuthContext";
 import showToast from "../../utils/toast";
 import styles from "./SettingsModal.module.css";
@@ -42,18 +43,22 @@ const SettingsModal = ({ onClose }) => {
     showToast("Success", "Logged out successfully!", "success");
   };
 
-  return (
+  const modalContent = (
     <div className={styles.modalOverlay}>
       <div className={styles.modal}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Settings</h2>
+          <h2 className={styles.modalTitle}>
+            <i className="fas fa-cog"></i> Settings
+          </h2>
           <button className={styles.closeBtn} onClick={onClose}>
             <i className="fas fa-times"></i>
           </button>
         </div>
 
         <div className={styles.settingsSection}>
-          <h3>Appearance</h3>
+          <h3>
+            <i className="fas fa-palette"></i> Appearance
+          </h3>
           <div className={styles.settingItem}>
             <div className={styles.settingInfo}>
               <h4>Dark Mode</h4>
@@ -66,31 +71,39 @@ const SettingsModal = ({ onClose }) => {
                 theme === "dark" ? styles.active : ""
               }`}
               onClick={handleThemeToggle}
-            ></div>
+            >
+              <div className={styles.toggleSlider}></div>
+            </div>
           </div>
         </div>
 
         <div className={styles.settingsSection}>
-          <h3>Account</h3>
+          <h3>
+            <i className="fas fa-user"></i> Account
+          </h3>
           <div className={styles.settingItem}>
             <div className={styles.settingInfo}>
               <h4>Profile</h4>
               <div className={styles.settingDescription}>
-                {user?.email || "No email"}
+                <i className="fas fa-envelope"></i> {user?.email || "No email"}
               </div>
             </div>
           </div>
           <div className={styles.settingItem}>
             <div className={styles.settingInfo}>
               <h4>Status</h4>
-              <div className={styles.settingDescription}>Online</div>
+              <div className={styles.settingDescription}>
+                <span className={styles.statusOnline}>
+                  <i className="fas fa-circle"></i> Online
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         <div className={styles.settingsSection}>
           <button
-            className={`btn btn-primary ${styles.logoutBtn}`}
+            className={`btn btn-danger ${styles.logoutBtn}`}
             onClick={handleLogoutClick}
           >
             <i className="fas fa-sign-out-alt"></i>
@@ -100,6 +113,8 @@ const SettingsModal = ({ onClose }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.getElementById("modal-root"));
 };
 
 export default SettingsModal;
