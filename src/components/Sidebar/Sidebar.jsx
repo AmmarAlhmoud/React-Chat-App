@@ -3,10 +3,10 @@ import ChatList from "../ChatList/ChatList";
 import { useAuth } from "../../context/AuthContext";
 import { ref, onValue } from "firebase/database";
 import { database } from "../../firebase/config";
-import { getUserChatsWithDetails } from "../../firebase/contacts";
 import styles from "./Sidebar.module.css";
 
 const Sidebar = ({
+  chats, 
   currentChat,
   onChatSelect,
   onSettingsOpen,
@@ -16,53 +16,40 @@ const Sidebar = ({
   const { user } = useAuth();
 
   const [dbUser, setDbUser] = useState(null);
-  const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Load user data and chats
+  // Load only user data - remove chat subscription
   useEffect(() => {
     if (!user?.uid) {
-      setChats([]);
       setLoading(false);
       return;
     }
 
-    const unsubscribers = [];
-
-    // Subscribe to user data
+    // Subscribe only to user data
     const userRef = ref(database, `users/${user.uid}`);
-    unsubscribers.push(
-      onValue(userRef, (snapshot) => {
-        setDbUser(snapshot.val());
-      })
-    );
-
-    // Subscribe to user's chats with details using the new structure
-    const chatsUnsubscribe = getUserChatsWithDetails(user.uid, (chatsList) => {
-      setChats(chatsList);
+    const unsubscribe = onValue(userRef, (snapshot) => {
+      setDbUser(snapshot.val());
       setLoading(false);
     });
 
-    if (chatsUnsubscribe) {
-      unsubscribers.push(chatsUnsubscribe);
-    }
-
-    return () => {
-      unsubscribers.forEach((unsub) => {
-        if (typeof unsub === "function") {
-          unsub();
-        }
-      });
-    };
+    return unsubscribe;
   }, [user?.uid]);
 
+  // Update loading state based on chats prop
+  useEffect(() => {
+    if (chats && chats.length >= 0) {
+      setLoading(false);
+    }
+  }, [chats]);
+
   // Filter chats based on search query
-  const filteredChats = chats.filter(
-    (chat) =>
-      chat.contactName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      chat.contactEmail?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredChats =
+    chats?.filter(
+      (chat) =>
+        chat.contactName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        chat.contactEmail?.toLowerCase().includes(searchQuery.toLowerCase())
+    ) || [];
 
   // Generate initials for names
   const getInitials = (name) => {
@@ -127,7 +114,6 @@ const Sidebar = ({
           </button>
         </div>
       </div>
-
       <div className={styles.searchBar}>
         <input
           type="text"
@@ -137,8 +123,7 @@ const Sidebar = ({
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-
-      {chats.length === 0 ? (
+      {!chats || chats.length === 0 ? (
         <div className={styles.noContactsMessage}>
           <div className={styles.emptyStateIcon}>
             <i className="fas fa-comments"></i>
@@ -161,7 +146,6 @@ const Sidebar = ({
           onChatSelect={onChatSelect}
         />
       )}
-
       <div className={`${styles.sidebarActions} ${styles.bottomActions}`}>
         <button
           className="icon-btn"
@@ -172,15 +156,15 @@ const Sidebar = ({
         </button>
       </div>
 
-      {/* TODO: remove in production
-      {process.env.NODE_ENV === "development" && (
+      {/* TODO: remove in production */}
+      {import.meta.env.VITE_ENV === "development" && (
         <div className={styles.debugInfo}>
           <small>
-            Chats: {chats.length} | Filtered: {filteredChats.length} | Current:{" "}
-            {currentChat?.chatId || "none"}
+            Chats: {chats?.length || 0} | Filtered: {filteredChats.length} |
+            Current: {currentChat?.chatId || "none"}
           </small>
         </div>
-      )} */}
+      )}
     </div>
   );
 };

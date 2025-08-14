@@ -4,18 +4,21 @@ import {
   useContactsPresence,
   getPresenceStatus,
   formatLastSeenTime,
-} from "./../../hooks/useUserPresence";
+} from "../../hooks/usePresence";
 import RenameContactModal from "./RenameContactModal";
 import styles from "./Header.module.css";
 
-const Header = ({
-  currentChat,
-  onToggleSidebar,
-  onContactRenamed,
-}) => {
+const Header = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const [localContactName, setLocalContactName] = useState(
+    currentChat?.contactName || ""
+  );
+
+  // Update local contact name when currentChat changes
+  useEffect(() => {
+    setLocalContactName(currentChat?.contactName || "");
+  }, [currentChat?.contactName]);
 
   // Get contact IDs for presence tracking
   const contactIds =
@@ -50,9 +53,11 @@ const Header = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Get contact name or fallback
+  const dropdownRef = useRef(null);
+
+  // Get contact name or fallback - use local state for immediate updates
   const getContactName = () => {
-    return currentChat?.contactName || "Unknown Contact";
+    return localContactName || "Unknown Contact";
   };
 
   // Get online status
@@ -115,11 +120,19 @@ const Header = ({
     setIsRenameModalOpen(false);
   };
 
-  // Handle contact renamed
+  // Handle contact renamed - update local state immediately
   const handleContactRenamed = (renameData) => {
-    // Pass the rename data to parent component if callback is provided
+    if (renameData.newContactName) {
+      setLocalContactName(renameData.newContactName);
+    }
+
+    // Pass the rename data to parent component
     if (onContactRenamed) {
-      onContactRenamed(renameData);
+      onContactRenamed({
+        ...renameData,
+        chatId: currentChat?.chatId,
+        contactUserId: currentChat?.contactUserId,
+      });
     }
     setIsRenameModalOpen(false);
   };
@@ -130,7 +143,7 @@ const Header = ({
   }
 
   const contactName = getContactName();
-  const avatarInitials = generateInitials(currentChat?.contactName);
+  const avatarInitials = generateInitials(localContactName); // Use local name for avatar
   const lastSeenText = getLastSeenText();
   const isOnline = getOnlineStatus() === "Online";
   const typingStatus = getTypingStatus();
@@ -206,7 +219,7 @@ const Header = ({
         </div>
 
         <div className={styles.chatHeaderActions}>
-          {/* TODO: add new feature in the future */}
+          {/* TODO: add new features in the future */}
           {/* <button className={`${styles.iconBtn} icon-btn`} title="Voice call">
             <i className="fas fa-phone"></i>
           </button>
