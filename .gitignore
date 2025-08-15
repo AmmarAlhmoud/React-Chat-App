@@ -23,8 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Folders
-firebase/
 
 .env.local
 *.env
