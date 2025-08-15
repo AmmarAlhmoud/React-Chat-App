@@ -70,14 +70,12 @@ export const useContactsPresence = (contactIds) => {
   const [presenceStatuses, setPresenceStatuses] = useState({});
 
   useEffect(() => {
-    if (!contactIds || contactIds.length === 0) {
+    if (!Array.isArray(contactIds) || contactIds.length === 0) {
       setPresenceStatuses({});
       return;
     }
 
-    // Filter out any null or undefined values
     const validContactIds = contactIds.filter((id) => id != null);
-
     if (validContactIds.length === 0) {
       setPresenceStatuses({});
       return;
@@ -90,8 +88,12 @@ export const useContactsPresence = (contactIds) => {
       }
     );
 
-    return unsubscribe;
-  }, [contactIds]);
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
+  }, [contactIds.join(",")]); // avoid reruns from new array references
 
   return presenceStatuses;
 };
