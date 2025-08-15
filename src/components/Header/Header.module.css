@@ -10,12 +10,11 @@
 .mobileMenuBtn {
   background: none;
   border: none;
-  font-size: 1.25rem;
-  color: var(--text-primary);
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  transition: background-color 0.2s;
+  margin-right: 1rem;
+  display: none;
+  color: var(--text-secondary);
 }
 
 .mobileMenuBtn:hover {
@@ -274,24 +273,6 @@
   color: var(--text-secondary);
 }
 
-.chatHeader {
-  display: none;
-}
-
-.mobileHeader {
-  display: flex;
-}
-
-@media (min-width: 769px) {
-  .mobileHeader {
-    display: none;
-  }
-
-  .chatHeader {
-    display: flex;
-  }
-}
-
 @media (max-width: 768px) {
   .chatHeaderInfo h3 {
     font-size: 1rem;
@@ -312,6 +293,12 @@
     width: 0.625rem;
     height: 0.625rem;
     border-width: 1.5px;
+  }
+
+  .mobileMenuBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 

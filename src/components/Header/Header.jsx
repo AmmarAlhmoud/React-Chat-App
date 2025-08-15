@@ -1,265 +1,167 @@
 import React, { useState, useRef, useEffect } from "react";
-import { generateInitials } from "./../../utils/helpers";
+import { generateInitials } from "../../utils/helpers";
 import {
   useContactsPresence,
   getPresenceStatus,
   formatLastSeenTime,
 } from "../../hooks/usePresence";
-import RenameContactModal from "./RenameContactModal";
+import ConfirmationModal from "./ConfirmationModal";
 import styles from "./Header.module.css";
 
-const Header = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
+const Header = ({
+  currentChat,
+  onToggleSidebar,
+  onContactRenamed,
+  onChatCleared,
+  onContactDeleted,
+}) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(null);
   const [localContactName, setLocalContactName] = useState(
     currentChat?.contactName || ""
   );
 
-  // Update local contact name when currentChat changes
-  useEffect(() => {
-    setLocalContactName(currentChat?.contactName || "");
-  }, [currentChat?.contactName]);
-
-  // Get contact IDs for presence tracking
   const contactIds =
     currentChat && !currentChat.isSelfChat && currentChat.contactUserId
       ? [currentChat.contactUserId]
       : [];
-
-  // Use the custom hook to get presence status
   const presenceStatuses = useContactsPresence(contactIds);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Close dropdown on escape key
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const dropdownRef = useRef(null);
 
-  // Get contact name or fallback - use local state for immediate updates
-  const getContactName = () => {
-    return localContactName || "Unknown Contact";
-  };
+  useEffect(() => {
+    setLocalContactName(currentChat?.contactName || "");
+  }, [currentChat?.contactName]);
 
-  // Get online status
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setIsDropdownOpen(false);
+    };
+    const handleEsc = (e) => e.key === "Escape" && setIsDropdownOpen(false);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, []);
+
   const getOnlineStatus = () => {
     if (!currentChat) return "Offline";
-
-    // For self chats, always show as online
     if (currentChat.isSelfChat) return "Online";
-
-    // Get presence status using the helper function
-    const presenceStatus = getPresenceStatus(
-      currentChat.contactUserId,
-      presenceStatuses
-    );
-    return presenceStatus.status;
+    return getPresenceStatus(currentChat.contactUserId, presenceStatuses)
+      .status;
   };
 
-  // Get last seen text
   const getLastSeenText = () => {
     if (!currentChat) return "";
-
-    // For self chats
-    if (currentChat.isSelfChat) {
-      return "Messages to yourself";
-    }
-
-    // Get presence status using the helper function
-    const presenceStatus = getPresenceStatus(
+    if (currentChat.isSelfChat) return "Messages to yourself";
+    const presence = getPresenceStatus(
       currentChat.contactUserId,
       presenceStatuses
     );
-
-    if (presenceStatus.isOnline) {
-      return "Online";
-    } else {
-      const lastSeenText = formatLastSeenTime(presenceStatus.lastSeen);
-      return `Last seen ${lastSeenText}`;
-    }
+    return presence.isOnline
+      ? "Online"
+      : `Last seen ${formatLastSeenTime(presence.lastSeen)}`;
   };
 
-  // TODO: add typing indicator
-  const getTypingStatus = () => {
-    return null;
-  };
+  const avatarInitials = generateInitials(localContactName);
+  const isOnline = getOnlineStatus() === "Online";
 
-  // Handle dropdown toggle
-  const handleDropdownToggle = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
-
-  // Handle rename contact
-  const handleRenameContact = () => {
-    if (!currentChat || currentChat.isSelfChat) return;
-
-    setIsRenameModalOpen(true);
+  const openModal = (type) => {
+    if (!currentChat) return;
+    if (currentChat.isSelfChat && type === "delete") return;
+    setModalType(type);
     setIsDropdownOpen(false);
   };
 
-  const handleModalClose = () => {
-    setIsRenameModalOpen(false);
-  };
+  const closeModal = () => setModalType(null);
 
-  // Handle contact renamed - update local state immediately
-  const handleContactRenamed = (renameData) => {
-    if (renameData.newContactName) {
-      setLocalContactName(renameData.newContactName);
+  const handleModalAction = (data) => {
+    if (modalType === "rename" && data?.newContactName) {
+      setLocalContactName(data.newContactName);
+      onContactRenamed?.({ ...data, chatId: currentChat.chatId });
     }
-
-    // Pass the rename data to parent component
-    if (onContactRenamed) {
-      onContactRenamed({
-        ...renameData,
-        chatId: currentChat?.chatId,
-        contactUserId: currentChat?.contactUserId,
-      });
-    }
-    setIsRenameModalOpen(false);
+    if (modalType === "clear") onChatCleared?.(currentChat.chatId);
+    if (modalType === "delete") onContactDeleted?.(currentChat.contactUserId);
   };
-
-  // Show nothing if no chat is selected
-  if (!currentChat) {
-    return <></>;
-  }
-
-  const contactName = getContactName();
-  const avatarInitials = generateInitials(localContactName); // Use local name for avatar
-  const lastSeenText = getLastSeenText();
-  const isOnline = getOnlineStatus() === "Online";
-  const typingStatus = getTypingStatus();
 
   return (
     <>
-      {/* Mobile Header */}
-      <div className={styles.mobileHeader}>
-        <button className={styles.mobileMenuBtn} onClick={onToggleSidebar}>
+      <div className={styles.chatHeader}>
+        <button
+          className={styles.mobileMenuBtn}
+          onClick={onToggleSidebar}
+          aria-label="Toggle Sidebar"
+        >
           <i className="fas fa-bars"></i>
         </button>
-        <div className={styles.chatAvatar}>
-          {currentChat.avatar || avatarInitials}
-          {isOnline && <div className={styles.onlineIndicator}></div>}
-        </div>
-        <div className={styles.chatHeaderInfo}>
-          <h3>{contactName}</h3>
-          <div
-            className={`${styles.chatHeaderStatus} ${
-              isOnline ? styles.onlineStatus : styles.offlineStatus
-            }`}
-          >
-            {typingStatus || lastSeenText}
-          </div>
-        </div>
-        <div className={styles.mobileActions}>
-          <button className={`${styles.iconBtn} icon-btn`} title="Call">
-            <i className="fas fa-phone"></i>
-          </button>
-          <div className={styles.dropdownContainer} ref={dropdownRef}>
-            <button
-              className={`${styles.iconBtn} icon-btn ${
-                isDropdownOpen ? styles.active : ""
-              }`}
-              title="More options"
-              onClick={handleDropdownToggle}
-            >
-              <i className="fas fa-ellipsis-v"></i>
-            </button>
-            {isDropdownOpen && (
-              <div className={styles.dropdown}>
-                <button
-                  className={styles.dropdownItem}
-                  onClick={handleRenameContact}
-                  disabled={currentChat.isSelfChat}
-                >
-                  <i className="fas fa-edit"></i>
-                  Rename Contact
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Header */}
-      <div className={styles.chatHeader}>
         <div className={styles.chatHeaderLeft}>
           <div className={styles.chatAvatar}>
-            {currentChat.avatar || avatarInitials}
-            {isOnline && <div className={styles.onlineIndicator}></div>}
+            {currentChat?.avatar || avatarInitials}
+            {currentChat && isOnline && (
+              <div className={styles.onlineIndicator}></div>
+            )}
           </div>
           <div className={styles.chatHeaderInfo}>
-            <h3>{contactName}</h3>
+            <h3>{currentChat ? localContactName : "Select a contact"}</h3>
             <div
               className={`${styles.chatHeaderStatus} ${
                 isOnline ? styles.onlineStatus : styles.offlineStatus
               }`}
             >
-              {typingStatus || lastSeenText}
+              {currentChat ? getLastSeenText() : "Start chatting"}
             </div>
           </div>
         </div>
 
-        <div className={styles.chatHeaderActions}>
-          {/* TODO: add new features in the future */}
-          {/* <button className={`${styles.iconBtn} icon-btn`} title="Voice call">
-            <i className="fas fa-phone"></i>
-          </button>
-          <button className={`${styles.iconBtn} icon-btn`} title="Video call">
-            <i className="fas fa-video"></i>
-          </button>
-          <button className={`${styles.iconBtn} icon-btn`} title="Chat info">
-            <i className="fas fa-info-circle"></i>
-          </button> */}
-          <div className={styles.dropdownContainer} ref={dropdownRef}>
-            <button
-              className={`${styles.iconBtn} icon-btn ${
-                isDropdownOpen ? styles.active : ""
-              }`}
-              title="More options"
-              onClick={handleDropdownToggle}
-            >
-              <i className="fas fa-ellipsis-v"></i>
-            </button>
-            {isDropdownOpen && (
-              <div className={styles.dropdown}>
-                <button
-                  className={styles.dropdownItem}
-                  onClick={handleRenameContact}
-                  disabled={currentChat.isSelfChat}
-                >
-                  <i className="fas fa-edit"></i>
-                  Rename Contact
-                </button>
-              </div>
-            )}
+        {currentChat && (
+          <div className={styles.chatHeaderActions}>
+            <div className={styles.dropdownContainer} ref={dropdownRef}>
+              <button
+                className={`${styles.iconBtn} ${
+                  isDropdownOpen ? styles.active : ""
+                }`}
+                title="More options"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                <i className="fas fa-ellipsis-v"></i>
+              </button>
+              {isDropdownOpen && (
+                <div className={styles.dropdown}>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={() => openModal("rename")}
+                  >
+                    <i className="fas fa-edit"></i> Rename Contact
+                  </button>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={() => openModal("clear")}
+                  >
+                    <i className="fas fa-broom"></i> Clear Chat History
+                  </button>
+                  <button
+                    className={styles.dropdownItem}
+                    onClick={() => openModal("delete")}
+                    disabled={currentChat.isSelfChat}
+                  >
+                    <i className="fas fa-trash"></i> Delete Contact
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {isRenameModalOpen && (
-        <RenameContactModal
+      {modalType && currentChat && (
+        <ConfirmationModal
           currentChat={currentChat}
-          onClose={handleModalClose}
-          onContactRenamed={handleContactRenamed}
+          onClose={closeModal}
+          onAction={handleModalAction}
+          type={modalType}
         />
       )}
     </>
