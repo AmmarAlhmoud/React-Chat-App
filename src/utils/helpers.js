@@ -1,16 +1,17 @@
 export const generateInitials = (name) => {
   if (!name) return "";
-  const words = name
-    .trim()
-    .split(" ")
-    .filter((word) => word.length > 0);
 
-  if (words.length === 1) {
-    return words[0][0].toUpperCase();
-  } else if (words.length >= 2) {
-    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
-  }
-  return "";
+  // Remove (You) if present
+  const cleaned = name.replace(/\s*\(You\)$/, "").trim();
+  const words = cleaned.split(/\s+/);
+
+  // Take only first two words
+  const initials = words
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+
+  return initials;
 };
 
 export const formatTime = (timestamp) => {
