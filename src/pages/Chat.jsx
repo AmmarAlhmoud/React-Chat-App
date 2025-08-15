@@ -15,31 +15,55 @@ const Chat = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showAddContact, setshowAddContact] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    // Check on mount
+    checkIsMobile();
+
+    // Add resize listener
+    window.addEventListener("resize", checkIsMobile);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
 
   // Load user's chats with real-time updates
   useEffect(() => {
     if (!user?.uid) return;
 
     const unsubscribe = getUserChatsWithDetails(user.uid, (chatsList) => {
-      setChats(chatsList);
+      // Filter out deleted contacts
+      const visibleChats = chatsList.filter((chat) => !chat.deleted);
 
-      // If current chat is set, update it with the latest data from Firebase
+      setChats(visibleChats);
+
+      // If current chat exists but was deleted, reset it
       if (currentChat) {
-        const updatedCurrentChat = chatsList.find(
+        const updatedCurrentChat = visibleChats.find(
           (chat) => chat.chatId === currentChat.chatId
         );
+
         if (updatedCurrentChat) {
           if (
             JSON.stringify(updatedCurrentChat) !== JSON.stringify(currentChat)
           ) {
             setCurrentChat(updatedCurrentChat);
           }
+        } else {
+          // Chat no longer exists or deleted
+          setCurrentChat(null);
         }
       }
     });
 
     return unsubscribe;
-  }, [user?.uid]);
+  }, [user?.uid, currentChat]);
 
   const handleChatSelect = (chatData) => {
     setCurrentChat(chatData);
@@ -48,8 +72,6 @@ const Chat = () => {
 
   // Handle contact renamed
   const handleContactRenamed = (renameData) => {
-    console.log("Contact renamed:", renameData);
-
     if (currentChat && renameData.chatId === currentChat.chatId) {
       setCurrentChat((prevChat) => ({
         ...prevChat,
@@ -121,9 +143,11 @@ const Chat = () => {
       />
 
       <ChatWindow
-        currentChat={currentChat}
+        currentChat={currentChat || null}
         onToggleSidebar={toggleSidebar}
         onContactRenamed={handleContactRenamed}
+        sidebarOpen={sidebarOpen}
+        isMobile={isMobile}
       />
 
       {showSettings && <SettingsModal onClose={handleSettingsClose} />}

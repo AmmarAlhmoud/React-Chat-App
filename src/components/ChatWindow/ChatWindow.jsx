@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
   getChatMessages,
+  fetchOlderMessages,
   sendMessage,
   markMessagesAsRead,
   setUserOnline,
@@ -10,78 +11,82 @@ import {
 import Header from "../Header/Header";
 import Message from "../Message/Message";
 import MessageInput from "../MessageInput/MessageInput";
-import TypingIndicator from "../TypingIndicator/TypingIndicator";
 import styles from "./ChatWindow.module.css";
 
-const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
+const ChatWindow = ({
+  currentChat,
+  onToggleSidebar,
+  sidebarOpen,
+  isMobile,
+}) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 
-  // Ref for the messages container to control scrolling
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
 
-  // Function to scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  // Check if user is near bottom of messages - FIXED VERSION
   const isNearBottom = () => {
     const container = messagesContainerRef.current;
     if (!container) return true;
-
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    const threshold = 150; // Increased threshold for better detection
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-    return distanceFromBottom <= threshold;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceFromBottom <= 150;
   };
 
-  // Handle scroll events to show/hide scroll button - IMPROVED VERSION
-  const handleScroll = () => {
-    if (!messagesContainerRef.current || messages.length === 0) {
-      setShowScrollButton(false);
-      return;
-    }
-
-    const isAtBottom = isNearBottom();
-    setShowScrollButton(!isAtBottom);
-  };
-
-  // Smart auto-scroll - only scroll if user is near bottom
   const smartScrollToBottom = () => {
-    if (isNearBottom()) {
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
+    if (isNearBottom()) scrollToBottom();
+  };
+
+  const loadOlderMessages = async () => {
+    if (!currentChat?.chatId || isLoadingOlder || messages.length === 0) return;
+
+    setIsLoadingOlder(true);
+    try {
+      const oldestMessageTimestamp = messages[0]?.timestamp;
+      const olderMessages = await fetchOlderMessages(
+        currentChat.chatId,
+        oldestMessageTimestamp
+      );
+      if (olderMessages.length > 0) {
+        setMessages((prev) => [...olderMessages, ...prev]);
+        const container = messagesContainerRef.current;
+        if (container) {
+          const scrollHeightBefore = container.scrollHeight;
+          setTimeout(() => {
+            container.scrollTop =
+              container.scrollHeight - scrollHeightBefore + container.scrollTop;
+          }, 50);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading older messages:", err);
+    } finally {
+      setIsLoadingOlder(false);
     }
   };
 
-  // Auto-scroll when messages change (smart scrolling)
-  useEffect(() => {
-    if (messages.length > 0) {
-      smartScrollToBottom();
-    }
-  }, [messages]);
+  const handleScroll = () => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
-  // Initialize user presence when component mounts
+    if (container.scrollTop < 150) loadOlderMessages();
+
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowScrollButton(distanceFromBottom > 150);
+  };
+
   useEffect(() => {
     if (!user?.uid) return;
-
-    // Set user as online
-    const presenceRef = setUserOnline(user.uid);
-
-    // Update presence on user activity
-    const updateActivity = () => {
-      updateLastSeen(user.uid);
-    };
-
-    // Listen for user activity events
+    setUserOnline(user.uid);
+    const updateActivity = () => updateLastSeen(user.uid);
     const events = [
       "mousedown",
       "mousemove",
@@ -90,25 +95,16 @@ const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
       "touchstart",
       "click",
     ];
-    events.forEach((event) => {
-      document.addEventListener(event, updateActivity, { passive: true });
-    });
-
-    // Update presence every 2 minutes to show user is still active
-    const presenceInterval = setInterval(() => {
-      updateLastSeen(user.uid);
-    }, 120000); // 2 minutes
-
-    // Cleanup function
+    events.forEach((e) =>
+      document.addEventListener(e, updateActivity, { passive: true })
+    );
+    const interval = setInterval(() => updateLastSeen(user.uid), 120000);
     return () => {
-      events.forEach((event) => {
-        document.removeEventListener(event, updateActivity);
-      });
-      clearInterval(presenceInterval);
+      events.forEach((e) => document.removeEventListener(e, updateActivity));
+      clearInterval(interval);
     };
   }, [user?.uid]);
 
-  // Load messages when currentChat changes
   useEffect(() => {
     if (!user || !currentChat?.chatId) {
       setMessages([]);
@@ -118,49 +114,30 @@ const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
     }
 
     setLoading(true);
-    setError(null);
     setShowScrollButton(false);
 
-    // Subscribe to messages
     const unsubscribe = getChatMessages(currentChat.chatId, (messagesList) => {
-      setMessages(messagesList);
+      const recentMessages = messagesList.slice(-50);
+      setMessages(recentMessages);
       setLoading(false);
-
-      // TODO: make sure to add lazy loading for large chats & start from the bottom not scroll to the bottom.
-      // Scroll to bottom when loading a new chat
-      setTimeout(() => {
-        scrollToBottom();
-        setShowScrollButton(false);
-      }, 200);
+      setTimeout(() => scrollToBottom("auto"), 100);
     });
 
-    // Mark messages as read when viewing the chat
-    markMessagesAsRead(currentChat.chatId, user.uid).catch((err) => {
-      console.error("Error marking messages as read:", err);
-    });
+    markMessagesAsRead(currentChat.chatId, user.uid).catch(console.error);
 
-    // Cleanup subscription
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    return () => unsubscribe && unsubscribe();
   }, [user, currentChat?.chatId]);
 
-  // Update user's last seen when they view messages
   useEffect(() => {
-    if (user?.uid && currentChat?.chatId && messages.length > 0) {
-      updateLastSeen(user.uid);
-    }
-  }, [user?.uid, currentChat?.chatId, messages.length]);
+    if (messages.length > 0) smartScrollToBottom();
+  }, [messages]);
 
-  // Send message function
   const handleSendMessage = async (messageText) => {
     if (!user || !currentChat?.chatId || !messageText.trim()) return;
-
     const senderName =
       user.displayName ||
       `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
       "Unknown User";
-
     try {
       const result = await sendMessage(
         currentChat.chatId,
@@ -169,45 +146,22 @@ const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
         messageText.trim(),
         "text"
       );
-
-      if (!result.success) {
-        setError("Failed to send message. Please try again.");
-      } else {
-        // Update user's presence after sending message
-        updateLastSeen(user.uid);
-        setError(null); // Clear any previous errors
-        // Always scroll to bottom after sending message
-        setTimeout(() => {
-          scrollToBottom();
-          setShowScrollButton(false);
-        }, 100);
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setError("Failed to send message. Please try again.");
+      if (!result.success) console.error("Failed to send message");
+      updateLastSeen(user.uid);
+      setTimeout(() => scrollToBottom(), 50);
+    } catch (err) {
+      console.error("Error sending message:", err);
     }
   };
 
-  // Handle typing events
-  const handleTyping = () => {
-    // Update user presence while typing
-    updateLastSeen(user.uid);
-  };
-
-  // Transform messages for display with proper type detection
   const getDisplayMessages = () => {
     return messages.map((message) => {
       const isFromCurrentUser = message.senderId === user.uid;
       const messageType = isFromCurrentUser ? "sent" : "received";
-
-      // Determine read status based on readBy field
       const isRead = message.readBy && message.readBy[user.uid];
       const readStatus = isRead ? "read" : "unread";
-
-      // Generate avatar for received messages using current chat info
       const avatar =
         !isFromCurrentUser && currentChat?.avatar ? currentChat.avatar : null;
-
       return {
         ...message,
         type: messageType,
@@ -221,102 +175,38 @@ const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
     });
   };
 
-  // Get message statistics
-  const getMessageCounts = () => {
-    const displayMessages = getDisplayMessages();
-    return {
-      total: displayMessages.length,
-      sent: displayMessages.filter((m) => m.type === "sent").length,
-      received: displayMessages.filter((m) => m.type === "received").length,
-      unread: displayMessages.filter((m) => m.readStatus === "unread").length,
-      read: displayMessages.filter((m) => m.readStatus === "read").length,
-    };
-  };
-
-  // Handle focus events to update presence
-  const handleFocus = () => {
-    if (user?.uid) {
-      updateLastSeen(user.uid);
-    }
-  };
-
-  // Handle manual scroll to bottom button click
-  const handleScrollToBottomClick = () => {
-    scrollToBottom();
-    setShowScrollButton(false);
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <div className={styles.chatMain}>
-        <Header
-          currentChat={currentChat}
-          onToggleSidebar={onToggleSidebar}
-          onContactRenamed={onContactRenamed}
-        />
-        <div
-          className={styles.messagesContainer}
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-        >
-          <div className={styles.loading}>Loading messages...</div>
-        </div>
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          onTyping={handleTyping}
-          onFocus={handleFocus}
-          disabled
-        />
-      </div>
-    );
-  }
-
   const displayMessages = getDisplayMessages();
-  const stats = getMessageCounts();
-
-  // No chat selected state
-  if (!currentChat) {
-    return (
-      <div className={styles.chatMain}>
-        <Header
-          currentChat={null}
-          onToggleSidebar={onToggleSidebar}
-          onContactRenamed={onContactRenamed}
-        />
-        <div
-          className={styles.messagesContainer}
-          ref={messagesContainerRef}
-          onScroll={handleScroll}
-        >
-          <div className={styles.noChatSelected}>
-            Select a contact to start chatting
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={styles.chatMain}>
-      <Header
-        currentChat={currentChat}
-        onToggleSidebar={onToggleSidebar}
-        onContactRenamed={onContactRenamed}
-      />
+      {(isMobile || (!isMobile && currentChat)) && (
+        <Header currentChat={currentChat} onToggleSidebar={onToggleSidebar} />
+      )}
 
       <div
         className={styles.messagesContainer}
         ref={messagesContainerRef}
         onScroll={handleScroll}
+        onClick={() => {
+          if (isMobile && sidebarOpen) onToggleSidebar(false);
+        }}
       >
-        {displayMessages.length === 0 ? (
+        {!currentChat ? (
+          <div className={styles.noChatSelected}>
+            Select a contact to start chatting
+          </div>
+        ) : loading ? (
+          <div className={styles.loading}>Loading messages...</div>
+        ) : displayMessages.length === 0 ? (
           <div className={styles.noMessages}>
             <p>No messages yet.</p>
             <p>Send a message to start the conversation!</p>
           </div>
         ) : (
           <>
+            {isLoadingOlder && (
+              <div className={styles.loading}>Loading older messages...</div>
+            )}
             {displayMessages.map((message) => (
               <Message
                 key={message.id}
@@ -330,10 +220,18 @@ const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
         )}
       </div>
 
+      {currentChat && (
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onTyping={() => updateLastSeen(user.uid)}
+          onFocus={() => updateLastSeen(user.uid)}
+        />
+      )}
+
       {showScrollButton && (
         <button
           className={styles.scrollToBottomButton}
-          onClick={handleScrollToBottomClick}
+          onClick={() => scrollToBottom("smooth")}
           title="Scroll to bottom"
         >
           <svg
@@ -349,32 +247,6 @@ const ChatWindow = ({ currentChat, onToggleSidebar, onContactRenamed }) => {
             <path d="m6 9 6 6 6-6" />
           </svg>
         </button>
-      )}
-
-      <MessageInput
-        onSendMessage={handleSendMessage}
-        onTyping={handleTyping}
-        onFocus={handleFocus}
-      />
-
-      {/* TODO: DEBUG: Remove this in production */}
-      {import.meta.env.VITE_ENV === "development" && (
-        <div
-          style={{
-            position: "fixed",
-            top: "10px",
-            right: "10px",
-            background: "rgba(0,0,0,0.8)",
-            color: "white",
-            padding: "5px 10px",
-            borderRadius: "5px",
-            fontSize: "12px",
-            zIndex: 1000,
-          }}
-        >
-          Show Button: {showScrollButton ? "YES" : "NO"} | Messages:{" "}
-          {messages.length} | Near Bottom: {isNearBottom() ? "YES" : "NO"}
-        </div>
       )}
     </div>
   );
