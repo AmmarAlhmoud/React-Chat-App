@@ -169,13 +169,6 @@ const ContactsModal = ({ onClose, onContactAdded }) => {
             />
           </div>
 
-          {error && (
-            <div className={styles.errorMessage}>
-              <i className="fas fa-exclamation-triangle"></i>
-              {error}
-            </div>
-          )}
-
           <div className={styles.modalActions}>
             <button
               type="submit"
