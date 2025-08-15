@@ -1,123 +1,72 @@
-# ChatApp - React Chat Application
+# ChatApp – React + Firebase Real-Time Chat with Presence
 
-A modern, responsive full-stack chat application built with React and CSS Modules alongside Firebase.
+**Overview**
 
-## Features
+This is a modern, responsive real-time chat application built with React, Vite, and Firebase. It supports one-to-one messaging, live presence tracking, self-chats, and responsive UI for both desktop and mobile devices.
 
-- 🎨 Modern UI with dark/light theme support
-- 📱 Fully responsive design
-- 💬 Real-time chat interface
-- 🔐 Authentication system (Firebase integration)
-- ⚡ Fast and optimized with Vite
-- 🎯 Component-based architecture
-- 🎭 CSS Modules for scoped styling
+**Tech Stack**
 
-## Getting Started
+- **Frontend:** React, Vite
+- **Backend:** Firebase Authentication, Firestore, Firebase Realtime Database
 
-### Prerequisites
+**Features**
 
-- Node.js (v16 or higher)
-- npm or yarn
+**Real-Time Chat:**
 
-### Installation
+- One-to-one messaging with instant updates.
+- Read receipts for delivered messages.
+- Message types: text (support for future media/file uploads).
 
-1. Clone the repository or copy the files
-2. Install dependencies:
+**Presence System:**
 
-```bash
-npm install
-```
+- Live online/offline status updates.
+- Last seen tracking.
+- Automatic offline detection when users close the tab or disconnect.
+- Self-chat mode for personal notes.
 
-3. Start the development server:
+**Typing Indicators:**
 
-```bash
-npm run dev
-```
+- Real-time typing status for active conversations. _(Work in progress)_
 
-4. Open your browser and navigate to `http://localhost:5173`
+**Authentication:**
 
-### Building for Production
+- Email and password login.
+- Google Sign-In integration.
+- Persistent login state.
 
-```bash
-npm run build
-```
+**Responsive Design:**
 
-## Key Components
+- Mobile-first design with adaptive layouts.
+- Collapsible sidebar on smaller screens.
+- Touch-friendly UI components.
 
-### App.jsx
+**Styling:**
 
-Main application component that handles authentication state and theme management.
+- CSS Modules for scoped component styling.
+- Light and dark themes with smooth transitions.
+- Global theme variables for easy customization.
 
-### Chat.jsx
+**Getting Started**
 
-Main chat page that combines all chat-related components.
+1. **Install Dependencies:**
 
-### Sidebar Components
+   - Navigate to the project directory.
+   - Install dependencies:
 
-- **Sidebar.jsx**: Main sidebar container
-- **ChatList.jsx**: List of chat conversations
+     ```bash
+     npm install
+     ```
 
-### Chat Components
+2. **Start the Development Server:**
 
-- **ChatWindow.jsx**: Main chat interface
-- **Header.jsx**: Chat header with user info and actions
-- **Message.jsx**: Individual message bubbles
-- **MessageInput.jsx**: Input field for typing messages
-- **TypingIndicator.jsx**: Shows when someone is typing
+   - Run:
 
-### Authentication
+     ```bash
+     npm run dev
+     ```
 
-- **Login.jsx**: Login page with email/password and Google auth
-- **AuthContext.jsx**: Authentication state management
+   - This will typically launch the app at `http://localhost:5173` in your browser.
 
-### Settings
+**Live Website:**
 
-- **SettingsModal.jsx**: Settings popup with theme toggle and account options
-
-## CSS Modules
-
-Each component has its own `.module.css` file for scoped styling. Global styles and CSS variables are defined in `App.css`.
-
-## Firebase Integration
-
-The app is built with Firebase integration:
-
-1. `firebase/config.js` - Firebase project configuration
-2. The implementation for authentication functions is in `firebase/auth.js`
-3. Firestore for real-time messaging
-
-## Responsive Design
-
-The app is fully responsive with:
-
-- Mobile-first design approach
-- Collapsible sidebar on mobile
-- Touch-friendly interface
-- Optimized layouts for different screen sizes
-
-## Theme System
-
-Supports light and dark themes using CSS custom properties:
-
-- Theme switching via settings modal
-- Persistent theme preference in localStorage
-- Smooth transitions between themes
-
-## Browser Support
-
-- Modern browsers with ES6+ support
-- Chrome 60+
-- Firefox 60+
-- Safari 12+
-- Edge 79+
-
-## Contributing
-
-1. Follow the existing code style
-2. Create components in their respective folders with CSS modules
-3. Update this README if you add new features
-4. Test on both desktop and mobile devices
-
-## License
-
-This project is open source and available under the MIT License.
+- Visit the live app at: \[[https://chatspace-app.netlify.app/)]
